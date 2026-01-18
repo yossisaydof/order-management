@@ -68,7 +68,6 @@ define print_urls
 	@echo ""
 	@echo "$(GREEN)System is ready!$(NC)"
 	@echo ""
-	@echo "Application:  $(BLUE)$(BASE_URL)$(NC)"
 	@echo "Swagger UI:   $(BLUE)$(BASE_URL)/swagger-ui.html$(NC)"
 	@echo "Health Check: $(BLUE)$(BASE_URL)/actuator/health$(NC)"
 	@echo ""
@@ -220,7 +219,6 @@ status: ## Check status of all services
 	fi
 	@echo ""
 	@echo "$(YELLOW)URLs:$(NC)"
-	@echo "Application:  $(BLUE)$(BASE_URL)$(NC)"
 	@echo "Swagger UI:   $(BLUE)$(BASE_URL)/swagger-ui.html$(NC)"
 	@echo "Health Check: $(BLUE)$(BASE_URL)/actuator/health$(NC)"
 	@echo ""
