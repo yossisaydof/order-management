@@ -3,9 +3,11 @@
 # ============================================
 
 # --- Configuration ---
-DOCKER_COMPOSE = docker compose -f docker/docker-compose.yml
-MVN            = ./mvnw
-BASE_URL       = http://localhost:8080
+DOCKER_COMPOSE 		= docker compose -f docker/docker-compose.yml
+MVN            		= ./mvnw
+BASE_URL       		= http://localhost:8080
+HEALTH_CHECK_URL 	= $(BASE_URL)/actuator/health
+SWAGGER_URL 		= $(BASE_URL)/swagger-ui.html
 
 # Container names
 POSTGRES_CONTAINER = yotpo-postgres
@@ -57,7 +59,7 @@ endef
 
 define wait_for_app
 	@echo "Application: "
-	@until curl -s $(BASE_URL)/actuator/health > /dev/null 2>&1; do \
+	@until curl -s $(HEALTH_CHECK_URL) > /dev/null 2>&1; do \
 		echo "."; \
 		sleep 2; \
 	done
@@ -68,8 +70,8 @@ define print_urls
 	@echo ""
 	@echo "$(GREEN)System is ready!$(NC)"
 	@echo ""
-	@echo "Swagger UI:   $(BLUE)$(BASE_URL)/swagger-ui.html$(NC)"
-	@echo "Health Check: $(BLUE)$(BASE_URL)/actuator/health$(NC)"
+	@echo "Swagger UI:   $(BLUE)$(SWAGGER_URL)$(NC)"
+	@echo "Health Check: $(BLUE)$(HEALTH_CHECK_URL)$(NC)"
 	@echo ""
 endef
 
@@ -176,7 +178,7 @@ test-integration: ## Run integration tests (starts infra automatically)
 
 test-api: ## Run API tests (requires running application)
 	$(call print_header,Running API Tests)
-	@if ! curl -s $(BASE_URL)/actuator/health > /dev/null 2>&1; then \
+	@if ! curl -s $(HEALTH_CHECK_URL) > /dev/null 2>&1; then \
 		echo "$(RED)Error: Application is not running.$(NC)"; \
 		echo "Run $(YELLOW)make run$(NC) first."; \
 		exit 1; \
@@ -212,14 +214,14 @@ status: ## Check status of all services
 		echo "$(RED)Not Ready$(NC)"; \
 	fi
 	@echo "Application: "
-	@if curl -s $(BASE_URL)/actuator/health > /dev/null 2>&1; then \
+	@if curl -s $(HEALTH_CHECK_URL) > /dev/null 2>&1; then \
 		echo "$(GREEN)Healthy$(NC)"; \
 	else \
 		echo "$(RED)Not Running$(NC)"; \
 	fi
 	@echo ""
 	@echo "$(YELLOW)URLs:$(NC)"
-	@echo "Swagger UI:   $(BLUE)$(BASE_URL)/swagger-ui.html$(NC)"
-	@echo "Health Check: $(BLUE)$(BASE_URL)/actuator/health$(NC)"
+	@echo "Swagger UI:   $(BLUE)$(SWAGGER_URL)$(NC)"
+	@echo "Health Check: $(BLUE)$(HEALTH_CHECK_URL)$(NC)"
 	@echo ""
 

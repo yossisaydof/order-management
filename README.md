@@ -14,8 +14,8 @@ A production-grade order management REST API built with Spring Boot, featuring a
 make run
 
 # The system is ready when you see:
-#   Application Health:   http://localhost:8080/actuator/health
-#   Swagger UI:           http://localhost:8080/swagger-ui.html
+#   Health Check: http://localhost:8080/actuator/health
+#   Swagger UI:   http://localhost:8080/swagger-ui.html
 ```
 
 ## Stopping Services
