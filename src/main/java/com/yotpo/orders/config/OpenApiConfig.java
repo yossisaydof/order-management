@@ -82,13 +82,6 @@ public class OpenApiConfig {
                         - `2025-01-14T10:30:00Z` (UTC)
                         - `2025-01-14T10:30:00+02:00` (with offset)
                         """)
-                .version("1.0.0")
-                .contact(new Contact()
-                        .name("Yotpo Engineering Team")
-                        .email("engineering@yotpo.com")
-                        .url("https://www.yotpo.com"))
-                .license(new License()
-                        .name("Proprietary")
-                        .url("https://www.yotpo.com/terms"));
+                .version("1.0.0");
     }
 }
