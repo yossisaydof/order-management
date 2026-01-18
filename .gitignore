@@ -1,0 +1,166 @@
+# =====================================================
+
+# Maven & Build Artifacts
+
+# =====================================================
+
+target/
+**/target/
+
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+.mvn/timing.properties
+
+# Keep Maven Wrapper
+
+!.mvn/wrapper/maven-wrapper.jar
+
+# =====================================================
+
+# IDEs & Editors
+
+# =====================================================
+
+# IntelliJ IDEA
+
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+
+.classpath
+.project
+.settings/
+.metadata/
+bin/
+
+# VS Code
+
+.vscode/
+*.code-workspace
+
+# NetBeans
+
+nbproject/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# =====================================================
+
+# Operating Systems
+
+# =====================================================
+
+# macOS
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux / Unix
+
+*~
+
+# =====================================================
+
+# Logs & Runtime Files
+
+# =====================================================
+
+*.log
+spring.log
+logs/
+
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# =====================================================
+
+# Spring Boot / Application
+
+# =====================================================
+
+application-local.yml
+application-dev.yml
+application-test.yml
+
+# =====================================================
+
+# Docker
+
+# =====================================================
+
+.docker-data/
+docker-compose.override.yml
+
+# =====================================================
+
+# Test & Coverage Reports
+
+# =====================================================
+
+coverage/
+target/site/
+*.exec
+*.ser
+
+# =====================================================
+
+# Environment Variables & Secrets
+
+# =====================================================
+
+.env
+.env.*
+.env.local
+.env.*.local
+
+secrets/
+*.key
+*.pem
+*.crt
+
+# =====================================================
+
+# Archives & Packages (usually not committed)
+
+# =====================================================
+
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# =====================================================
+
+# Misc
+
+# =====================================================
+
+.claude/
+node_modules/

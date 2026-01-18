@@ -1,0 +1,195 @@
+# ============================================
+# Yotpo Order Management System - Docker Compose
+# ============================================
+#
+# Services:
+#   - postgres: PostgreSQL 15 database
+#   - kafka: Apache Kafka 3.6 (KRaft mode - no Zookeeper)
+#   - app: Spring Boot application
+#
+# Usage:
+#   docker-compose -f docker/docker-compose.yml up -d
+#   docker-compose -f docker/docker-compose.yml down
+#   docker-compose -f docker/docker-compose.yml logs -f
+#
+# Named volumes are used for data persistence across restarts.
+#
+# ============================================
+
+services:
+
+  # ==========================================
+  # PostgreSQL Database
+  # ==========================================
+  # Stores: orders, shoppers, line_items, retry_queue, dead_letter_queue
+  postgres:
+    image: postgres:15-alpine
+    container_name: yotpo-postgres
+    environment:
+      # Database configuration
+      POSTGRES_DB: yotpo_orders
+      POSTGRES_USER: yossi
+      POSTGRES_PASSWORD: yossi12123
+      # Performance tuning for development
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      # Named volume for data persistence
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Check if PostgreSQL is ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U yossi -d yotpo_orders"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - yotpo-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Apache Kafka (KRaft Mode - No Zookeeper)
+  # ==========================================
+  # Topics:
+  #   - orders.incoming: Order messages from API
+  #   - orders.created: Domain events for downstream services
+  #
+  # Why KRaft mode:
+  #   - Zookeeper is deprecated (removed in Kafka 4.0)
+  #   - Simpler architecture (one less service)
+  #   - Production-ready since Kafka 3.3
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: yotpo-kafka
+    ports:
+      # Internal listener for container-to-container communication
+      - "9092:9092"
+      # External listener for host machine access (development/testing)
+      - "9093:9093"
+    environment:
+      # ========== KRaft Configuration ==========
+      # Node ID in the Kafka cluster
+      KAFKA_NODE_ID: 1
+      # This node acts as both broker and controller
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      # Controller quorum configuration (single node for development)
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+
+      # ========== Listener Configuration ==========
+      # Security protocol for each listener
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      # Listeners this broker will bind to
+      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093,CONTROLLER://0.0.0.0:29093'
+      # Advertised listeners for clients to connect
+      # INTERNAL: For containers within Docker network (app -> kafka)
+      # EXTERNAL: For host machine access (testing from localhost)
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka:9092,EXTERNAL://localhost:9093'
+      # Listener used for inter-broker communication
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      # Listener for controller communication
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+
+      # ========== Topic Configuration ==========
+      # Replication factor for internal topics (1 for single-node development)
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Default replication factor for auto-created topics
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # Number of partitions for auto-created topics
+      KAFKA_NUM_PARTITIONS: 10
+      # Enable auto-creation of topics (for development convenience)
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+      # ========== Storage Configuration ==========
+      KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+
+      # ========== Cluster Configuration ==========
+      # Unique cluster ID (required for KRaft mode)
+      # Must be a valid base64-encoded UUID (22 characters)
+      # Generated with: kafka-storage random-uuid
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+
+      # ========== Performance Tuning ==========
+      # Log retention (7 days for development)
+      KAFKA_LOG_RETENTION_HOURS: 168
+      # Segment size (smaller for development)
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    volumes:
+      # Named volume for Kafka data persistence
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      # Check if Kafka broker is ready
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - yotpo-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Spring Boot Application
+  # ==========================================
+  # Yotpo Order Management System
+  # - REST API for order submission
+  # - Kafka producer (orders.incoming)
+  # - Kafka consumer (processes orders, writes to DB)
+  # - Domain event producer (orders.created)
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Spring profile for Docker environment
+      SPRING_PROFILES_ACTIVE: docker
+
+      # Database connection
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/yotpo_orders
+      SPRING_DATASOURCE_USERNAME: yossi
+      SPRING_DATASOURCE_PASSWORD: yossi12123
+
+      # Kafka connection (using internal listener)
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+      # JVM memory settings (adjust based on container resources)
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - yotpo-network
+    restart: unless-stopped
+
+# ==========================================
+# Named Volumes (Data Persistence)
+# ==========================================
+# Data persists across container restarts and recreations.
+# Use 'docker-compose down -v' to remove volumes and start fresh.
+volumes:
+  postgres_data:
+    name: yotpo-postgres-data
+  kafka_data:
+    name: yotpo-kafka-data
+
+# ==========================================
+# Network Configuration
+# ==========================================
+# All services communicate on a dedicated bridge network.
+# Service names (postgres, kafka) are used as hostnames.
+networks:
+  yotpo-network:
+    name: yotpo-network
+    driver: bridge

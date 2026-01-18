@@ -1,0 +1,239 @@
+# ============================================
+# Yotpo Order Management System - Application Configuration
+# ============================================
+# Default configuration for LOCAL DEVELOPMENT
+#
+# Profiles:
+#   - default: Local development (this file)
+#   - docker: Running in Docker container (application-docker.yml)
+#   - test: Integration tests (application-test.yml)
+#
+# ============================================
+
+spring:
+  application:
+    name: yotpo-order-management
+
+  # ==========================================
+  # Database Configuration (PostgreSQL)
+  # ==========================================
+  datasource:
+    # Local development: PostgreSQL running in Docker on localhost
+    url: jdbc:postgresql://localhost:5432/yotpo_orders
+    username: yossi
+    password: yossi12123
+    driver-class-name: org.postgresql.Driver
+
+    # HikariCP connection pool settings
+    hikari:
+      # Pool sizing (conservative for development)
+      minimum-idle: 2
+      maximum-pool-size: 10
+      # Connection timeout (30 seconds)
+      connection-timeout: 30000
+      # Idle timeout (10 minutes)
+      idle-timeout: 600000
+      # Max lifetime (30 minutes)
+      max-lifetime: 1800000
+      # Pool name for monitoring
+      pool-name: YotpoOrdersHikariPool
+
+  # ==========================================
+  # JPA / Hibernate Configuration
+  # ==========================================
+  jpa:
+    # Validate schema matches entities (don't auto-create/update)
+    # Schema is managed by Flyway migrations
+    hibernate:
+      ddl-auto: validate
+
+    # PostgreSQL dialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Format SQL for readability in logs
+        format_sql: true
+        # Generate statistics for debugging
+        generate_statistics: false
+
+    # Show SQL in logs (useful for development)
+    show-sql: false
+    # Don't initialize data on startup (Flyway handles migrations)
+    defer-datasource-initialization: false
+
+  # ==========================================
+  # Flyway Database Migration
+  # ==========================================
+  flyway:
+    enabled: true
+    # Migration scripts location
+    locations: classpath:db/migration
+    # Create schema history table if it doesn't exist
+    baseline-on-migrate: true
+    # Validate migrations on startup
+    validate-on-migrate: true
+    # Clean disabled (never drop tables in production!)
+    clean-disabled: true
+
+  # ==========================================
+  # Kafka Configuration
+  # ==========================================
+  kafka:
+    # Local development: Kafka running in Docker
+    # Use external listener (9093) from host machine
+    bootstrap-servers: localhost:9093
+
+    # ---------- Producer Configuration ----------
+    producer:
+      # Serializers - using String since we serialize JSON manually
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+      # Durability settings
+      # acks=all: Wait for all in-sync replicas to acknowledge
+      acks: all
+      # Retries on transient failures
+      retries: 3
+      # Backoff between retries (100ms)
+      properties:
+        retry.backoff.ms: 100
+        # Request timeout (5 seconds - fail fast for development)
+        request.timeout.ms: 5000
+        # Delivery timeout (10 seconds max for entire send operation)
+        delivery.timeout.ms: 10000
+        # Enable idempotent producer (prevents duplicates on retry)
+        enable.idempotence: true
+        # Max in-flight requests (required for idempotence)
+        max.in.flight.requests.per.connection: 5
+
+    # ---------- Consumer Configuration ----------
+    consumer:
+      # Consumer group ID
+      group-id: order-consumer-group
+
+      # Use String deserializers - manual JSON parsing in consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+      # Manual offset commit (for error handling control)
+      enable-auto-commit: false
+      # Start from earliest message if no offset exists
+      auto-offset-reset: earliest
+      # Process one message at a time (for error isolation)
+      max-poll-records: 1
+
+    # ---------- Listener Configuration ----------
+    listener:
+      # Manual acknowledgment mode
+      ack-mode: manual
+      # Concurrency (number of consumer threads)
+      concurrency: 1
+
+# ==========================================
+# Server Configuration
+# ==========================================
+server:
+  port: 8080
+  # Graceful shutdown (wait for requests to complete)
+  shutdown: graceful
+
+  # Servlet configuration
+  servlet:
+    context-path: /
+
+  # Error handling
+  error:
+    # Include error message in response
+    include-message: always
+    # Include binding errors
+    include-binding-errors: always
+
+# ==========================================
+# Spring Boot Actuator (Health & Metrics)
+# ==========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose health, info, metrics endpoints
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+
+  endpoint:
+    health:
+      # Show full health details
+      show-details: always
+      # Show component health (db, kafka, etc.)
+      show-components: always
+
+  # Health indicators
+  health:
+    # Database health check
+    db:
+      enabled: true
+    # Disk space health check
+    diskspace:
+      enabled: true
+
+# ==========================================
+# Swagger / OpenAPI Configuration
+# ==========================================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    # Expand operations by default
+    doc-expansion: list
+    # Show request duration
+    display-request-duration: true
+    # Filter operations
+    filter: true
+
+# ==========================================
+# Logging Configuration
+# ==========================================
+logging:
+  level:
+    # Application logging
+    com.yotpo.orders: INFO
+    # Spring framework
+    org.springframework: INFO
+    org.springframework.kafka: WARN
+    # Hibernate SQL logging (set to DEBUG to see queries)
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    # Flyway
+    org.flywaydb: INFO
+
+  # Log pattern
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ==========================================
+# Application-Specific Configuration
+# ==========================================
+app:
+  # Kafka topic names
+  kafka:
+    topics:
+      orders-incoming: orders.incoming
+      orders-created: orders.created
+
+  # Retry queue configuration
+  retry:
+    # Check retry queue every 5 seconds
+    interval-ms: 5000
+    # Max retry attempts before alerting
+    max-attempts: 100
+    # Initial backoff (5 seconds)
+    initial-backoff-ms: 5000
+    # Max backoff (5 minutes)
+    max-backoff-ms: 300000
+
+  # Consumer configuration
+  consumer:
+    # Max retries before sending to DLQ
+    max-retries: 10

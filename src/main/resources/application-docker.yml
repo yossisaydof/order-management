@@ -1,0 +1,37 @@
+# ============================================
+# Yotpo Order Management System - Docker Profile
+# ============================================
+# Configuration overrides for running inside Docker container.
+# Activated with: SPRING_PROFILES_ACTIVE=docker
+#
+# This profile overrides connection URLs to use Docker service names
+# instead of localhost (containers communicate via Docker network).
+#
+# ============================================
+
+spring:
+  # ==========================================
+  # Database Configuration (Docker)
+  # ==========================================
+  datasource:
+    # Docker: Use container name 'postgres' as hostname
+    url: jdbc:postgresql://postgres:5432/yotpo_orders
+    username: yossi
+    password: yossi12123
+
+  # ==========================================
+  # Kafka Configuration (Docker)
+  # ==========================================
+  kafka:
+    # Docker: Use container name 'kafka' with internal port
+    bootstrap-servers: kafka:9092
+
+# ==========================================
+# Logging Configuration (Docker)
+# ==========================================
+# Use JSON format for structured logging in production/containers
+logging:
+  level:
+    com.yotpo.orders: INFO
+    org.springframework: WARN
+    org.springframework.kafka: WARN
