@@ -185,15 +185,6 @@ src/main/java/com/yotpo/orders/
 | `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9093` | Kafka brokers |
 | `SERVER_PORT` | `8080` | Application port |
 
-## Future Improvements
-
-1. **Idempotency keys** — Client-provided keys to prevent duplicate order creation
-2. **Kafka Schema Registry** — Avro schemas for message contracts and evolution
-3. **Exactly-once semantics** — Kafka transactions + outbox pattern
-4. **Keyset pagination** — More efficient for large result sets
-5. **Consumer scaling** — Partition-based horizontal scaling
-6. **Observability** — Distributed tracing, metrics dashboards
-
 ## Troubleshooting
 
 | Issue | Solution |
