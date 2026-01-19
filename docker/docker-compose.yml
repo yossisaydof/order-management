@@ -139,6 +139,7 @@ services:
   # - Kafka consumer (processes orders, writes to DB)
   # - Domain event producer (orders.created)
   app:
+    container_name: order-management-app
     build:
       context: ..
       dockerfile: docker/Dockerfile
